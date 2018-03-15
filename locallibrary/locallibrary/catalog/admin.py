@@ -10,7 +10,7 @@ admin.site.register(Language)
 
 # Define the admin class
 class AuthorAdmin(admin.ModelAdmin):
-    pass
+    list_dysplay = ('last_name', 'first_name', 'date_of_birth', 'date_of_death')
 
 
 # Register the admin class with the associated models
