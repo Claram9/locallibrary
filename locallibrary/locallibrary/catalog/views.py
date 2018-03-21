@@ -4,6 +4,7 @@ from django.views import generic
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import permission_required
+from django.contrib.auth.mixins import PermissionRequiredMixin
 
 
 # Create your views here.
@@ -82,10 +83,11 @@ class LoanedBooksByUserListView(LoginRequiredMixin,generic.ListView):
 
 class LoanedBooksLibrariansListView(PermissionRequiredMixin,generic.ListView):
     """
-    Generic class-based view listing books on loan to current user.
+    Generic class-based view listing books on loan to librarians.
     """
+    permission_required = 'catalog.can_mark_returned'
     model = BookInstance
-    template_name ='catalog/bookinstance_list_borrowed_user.html'
+    template_name ='catalog/bookinstance_list_borrowed_librarians.html'
     paginate_by = 10
 
     def get_queryset(self):
