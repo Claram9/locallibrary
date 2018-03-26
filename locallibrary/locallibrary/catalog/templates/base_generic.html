@@ -35,14 +35,12 @@
       </ul>
 
       {% if perms.catalog.can_mark_returned %}
-      <!--{% if user.is_staff %}-->
       <hr />
       <ul class="sidebar-nav">
       <li>Staff</li>
       <li><a href="{% url 'borrowed' %}">All borrowed</a></li>
       {% endif %}
       </ul>
-       <!--{% endif %}-->
      {% endblock %}
       </div>
       <div class="col-sm-10 ">

@@ -6,11 +6,16 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import permission_required
 from django.contrib.auth.mixins import PermissionRequiredMixin
 # For the forms:
-from django import forms
-from django.core.exceptions import ValidationError
-from django.utils.translation import ugettext_lazy as _
-import datetime #for checking renewal date range.
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponseRedirect
+from django.urls import reverse
+import datetime
 
+from .forms import RenewBookForm
+# Add authors
+from django.views.generic.edit import CreateView, UpdateView, DeleteView
+from django.urls import reverse_lazy
+from .models import Author
 
 # Create your views here.
 def index(request):
@@ -99,19 +104,42 @@ class LoanedBooksLibrariansListView(PermissionRequiredMixin,generic.ListView):
         return BookInstance.objects.filter(status__exact='o').order_by('due_back')
 
 
-class RenewBookForm(forms.Form):
-    renewal_date = forms.DateField(help_text="Enter a date between now and 4 weeks (default 3).")
+@permission_required('catalog.can_mark_returned')
+def renew_book_librarian(request, pk):
+    book_inst=get_object_or_404(BookInstance, pk = pk)
 
-    def clean_renewal_date(self):
-        data = self.cleaned_data['renewal_date']
+    # If this is a POST request then process the Form data
+    if request.method == 'POST':
 
-        # Check date is not in past.
-        if data < datetime.date.today():
-            raise ValidationError(_('Invalid date - renewal in past'))
+        # Create a form instance and populate it with data from the request (binding):
+        form = RenewBookForm(request.POST)
 
-        #Check if data is in range librarian allowed to change (+4 weeks).
-        if data > datetime.date.today() + datetime.timedelta(weeks=4):
-            raise ValidationError(_('Invalid date - renewal more than 4 weeks ahead'))
+        # Check if the form is valid:
+        if form.is_valid():
+            # process the data in form.cleaned_data as required (here we just write it to the model due_back field)
+            book_inst.due_back = form.cleaned_data['renewal_date']
+            book_inst.save()
 
-        #Remember to always return the cleaned dataself.
-        return data
+            # redirect to a new URL:
+            return HttpResponseRedirect(reverse('borrowed') )
+
+    # If this is a GET (or any other method) create the default form.
+    else:
+        proposed_renewal_date = datetime.date.today() + datetime.timedelta(weeks=3)
+        form = RenewBookForm(initial={'renewal_date': proposed_renewal_date,})
+
+    return render(request, 'catalog/book_renew_librarian.html', {'form': form, 'bookinst':book_inst})
+
+
+class AuthorCreate(CreateView):
+    model = Author
+    fields = '__all__'
+    initial={'date_of_death':'05/01/2018',}
+
+class AuthorUpdate(UpdateView):
+    model = Author
+    fields = ['first_name','last_name','date_of_birth','date_of_death']
+
+class AuthorDelete(DeleteView):
+    model = Author
+    success_url = reverse_lazy('authors')
